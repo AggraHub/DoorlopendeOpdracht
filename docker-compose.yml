@@ -1,32 +1,48 @@
-version: "3.9"
+version: "3.x"
 services:
  todo-api-service:
    build: ./backend
    ports:
-      - "3000:3000"
+      - 3000:3000
    depends_on:
       - database
- web:
+   environment:
+     - STORAGE=mysql
+     - MYSQL_HOST=database
+     - MYSQL_USER
+     - MYSQL_PWD
+     - MYSQL_DB
+   networks:
+     - frontend
+     - backend
+ ingress:
    image: nginx:1.22
    volumes:
       - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./frontend:/var/www/static/:ro
    ports:
-      - "80:80"
- 
+      - 80:80
+   depends_on:
+      - todo-api-service
+   networks:
+     - frontend
  database:
    image: mysql:8.0.29-debian
    environment:
      - STORAGE=mysql
-     - MYSQL_HOST=localhost
-     - MYSQL_USER=dbuser
-     - MYSQL_PWD=DitIsGoed
-     - MYSQL_DB=app_db
-     - MYSQL_ROOT_PASSWORD=root
+     - MYSQL_USER
+     - MYSQL_PASSWORD=${MYSQL_PWD}
+     - MYSQL_DATABASE=${MYSQL_DB}
+     - MYSQL_ROOT_PASSWORD
+   networks:
+     - backend
    ports:
-     - "3306:3306"
+     - 3306:3306
    volumes:
-     - ./db_data:/var/lib/mysql
-     - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+     - db_volume:/var/lib/mysql
+     - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 volumes:
-  db_data:
+  db_volume:
+networks:
+  backend:
+  frontend:
